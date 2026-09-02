@@ -105,7 +105,7 @@ jobs:
   docker-build-and-push:
     needs: [lint-and-test, frontend-build]
     runs-on: ubuntu-latest
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main' && secrets.DOCKERHUB_USERNAME != ''
 
     strategy:
       matrix:

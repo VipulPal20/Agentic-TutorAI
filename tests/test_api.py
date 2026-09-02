@@ -144,3 +144,16 @@ def test_app_error_maps_to_status(client, monkeypatch) -> None:
     body = resp.json()
     assert body["error"] == "AgentError"
     assert "agent exploded" in body["detail"]
+
+
+def test_learn_endpoint(client, monkeypatch) -> None:
+    async def _fake_learn(req):
+        from api.schemas import LearnResponse
+        return LearnResponse(mode="quiz", topic="Test", sources_used=[])
+
+    monkeypatch.setattr(routes_mod, "generate_learn_content", _fake_learn)
+
+    resp = client.post("/learn", json={"topic": "Test", "mode": "quiz"})
+    assert resp.status_code == 200
+    assert resp.json()["mode"] == "quiz"
+
