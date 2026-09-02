@@ -39,8 +39,10 @@ jobs:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
       POSTGRES_DB: ragdb
-      # Dummy key: the test suite mocks all Gemini calls, but settings load it.
+      # Dummy keys: the test suite mocks all API calls, but settings load them.
       GOOGLE_API_KEY: ci-test-key
+      GROQ_API_KEY: ci-test-key
+      NVIDIA_API_KEY: ci-test-key
 
     steps:
       - name: Checkout

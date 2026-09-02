@@ -62,8 +62,9 @@ def _extract_text_from_docx(raw: bytes) -> str:
 
 async def _extract_text_from_image(raw: bytes, mime_type: str) -> str:
     """OCR an image using the Gemini Vision API."""
-    from langchain_google_genai import ChatGoogleGenerativeAI
     from langchain_core.messages import HumanMessage
+    from langchain_google_genai import ChatGoogleGenerativeAI
+
     from core.config import settings
 
     b64 = base64.b64encode(raw).decode("utf-8")

@@ -5,10 +5,10 @@ from __future__ import annotations
 from core.config import Settings, settings
 
 
-def test_gemini_defaults() -> None:
-    assert settings.chat_model == "gemini-2.0-flash"
-    assert settings.embedding_model == "models/text-embedding-004"
-    assert settings.embedding_dim == 768
+def test_model_defaults() -> None:
+    assert settings.chat_model == "openai/gpt-oss-120b"
+    assert settings.embedding_model == "nvidia/nemotron-3-embed-1b"
+    assert settings.embedding_dim == 2048
 
 
 def test_async_dsn_built_from_parts(monkeypatch) -> None:

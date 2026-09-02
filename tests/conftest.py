@@ -9,4 +9,6 @@ from __future__ import annotations
 import os
 
 os.environ.setdefault("GOOGLE_API_KEY", "test-key")
+os.environ.setdefault("GROQ_API_KEY", "test-key")
+os.environ.setdefault("NVIDIA_API_KEY", "test-key")
 os.environ.setdefault("LANGFUSE_ENABLED", "false")

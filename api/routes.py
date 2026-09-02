@@ -9,8 +9,8 @@ from fastapi import APIRouter, status
 from fastapi.responses import StreamingResponse
 
 from agent.graph import run_agent, stream_agent_events
-from agent.summarize import summarize_conversation
 from agent.learn import generate_learn_content
+from agent.summarize import summarize_conversation
 from api.schemas import (
     ChatRequest,
     ChatResponse,

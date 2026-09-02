@@ -67,7 +67,7 @@ def _should_continue(state: AgentState) -> str:
 
 
 @lru_cache
-def get_compiled_graph() -> "CompiledStateGraph":
+def get_compiled_graph() -> CompiledStateGraph:
     """Build and cache the compiled agent graph.
 
     Cached so tools are bound and the graph is compiled once per process.

@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import json
-import random
 import uuid
 from typing import Any
 
@@ -38,7 +37,11 @@ async def generate_learn_content(req: LearnRequest) -> LearnResponse:
             query_vec = await embedder.aembed_query(topic_clean)
             chunks = await similarity_search(query_vec, top_k=6)
         except Exception as exc:
-            logger.warning("Vector search for topic '%s' failed, falling back to sample search: %s", topic_clean, exc)
+            logger.warning(
+                "Vector search for topic '%s' failed, falling back to sample search: %s",
+                topic_clean,
+                exc,
+            )
             chunks = await fetch_sample_chunks(limit=6, topic=topic_clean)
     else:
         chunks = await fetch_sample_chunks(limit=8)
@@ -66,7 +69,9 @@ async def generate_learn_content(req: LearnRequest) -> LearnResponse:
         )
 
     combined_context = "\n\n---\n\n".join(context_blocks)
-    topic_display = req.topic.strip() if (req.topic and req.topic.strip()) else "Knowledge Base Synthesis"
+    topic_display = (
+        req.topic.strip() if (req.topic and req.topic.strip()) else "Knowledge Base Synthesis"
+    )
 
     # 2. Call Groq to generate structured content
     llm = get_chat_model()
@@ -122,33 +127,28 @@ async def _generate_quiz(
     sources_used: list[str],
     raw_chunks: list[dict],
 ) -> LearnResponse:
-    prompt = f"""You are an expert AI tutor. Generate a high-quality {count}-question multiple choice quiz testing comprehension of the provided knowledge base context.
-
-Topic: {topic}
-Target Difficulty: {difficulty}
-
-CONTEXT FROM KNOWLEDGE BASE:
-{context}
-
-REQUIREMENTS:
-1. Every question MUST be grounded in the context provided.
-2. Return ONLY a valid JSON object matching this schema (no markdown wrap or extra commentary):
-{{
-  "questions": [
-    {{
-      "question": "Question text here?",
-      "options": ["Option A", "Option B", "Option C", "Option D"],
-      "correct_answer": 0,  // 0-based integer index of correct option
-      "explanation": "Detailed explanation of why this option is correct based on the context.",
-      "concept": "Specific concept name",
-      "source_document": "Name of source file if available in context",
-      "source_page": 1  // Integer page number if mentioned or null
-    }}
-  ]
-}}
-
-Generate exactly {count} distinct questions. Return pure JSON.
-"""
+    prompt = (
+        f"You are an expert AI tutor. Generate a high-quality {count}-question "
+        f"multiple choice quiz testing comprehension of the provided context.\n\n"
+        f"Topic: {topic}\nTarget Difficulty: {difficulty}\n\n"
+        f"CONTEXT FROM KNOWLEDGE BASE:\n{context}\n\n"
+        f"REQUIREMENTS:\n1. Every question MUST be grounded in the context provided.\n"
+        f"2. Return ONLY a valid JSON object matching this schema:\n"
+        "{\n"
+        '  "questions": [\n'
+        "    {\n"
+        '      "question": "Question text?",\n'
+        '      "options": ["A", "B", "C", "D"],\n'
+        '      "correct_answer": 0,\n'
+        '      "explanation": "Detailed explanation.",\n'
+        '      "concept": "Concept name",\n'
+        '      "source_document": "Source filename",\n'
+        '      "source_page": 1\n'
+        "    }\n"
+        "  ]\n"
+        "}\n\n"
+        f"Generate exactly {count} distinct questions. Return pure JSON."
+    )
 
     response = await llm.ainvoke(prompt)
     content = str(response.content).strip()
@@ -165,8 +165,11 @@ Generate exactly {count} distinct questions. Return pure JSON.
     try:
         data = json.loads(content)
     except json.JSONDecodeError as exc:
-        logger.error("Failed to parse quiz JSON from LLM: %s. Raw output: %s", exc, content[:500])
-        raise AppError("Failed to generate structured quiz content. Please try again.", status_code=500) from exc
+        logger.error("Failed to parse quiz JSON from LLM: %s", exc)
+        raise AppError(
+            "Failed to generate structured quiz content.",
+            status_code=500,
+        ) from exc
 
     raw_questions = data.get("questions", [])
     questions: list[QuizQuestion] = []
@@ -195,18 +198,29 @@ Generate exactly {count} distinct questions. Return pure JSON.
             )
         )
 
+    weak_list = (
+        concepts_found[2:]
+        if len(concepts_found) > 2
+        else [f"{topic} Advanced Application"]
+    )
+    gap_list = (
+        concepts_found[2:]
+        if len(concepts_found) > 2
+        else [f"{topic} core principles"]
+    )
+
     mastery = StudentMastery(
         topic=topic,
         mastery_pct=65 if difficulty == "easy" else (50 if difficulty == "medium" else 40),
         strong_concepts=concepts_found[:2],
-        weak_concepts=concepts_found[2:] if len(concepts_found) > 2 else [f"{topic} Advanced Application"],
+        weak_concepts=weak_list,
         gaps=[
             KnowledgeGap(
                 concept=c,
                 explanation=f"Review passages related to {c} in {default_src}.",
                 severity="medium",
             )
-            for c in (concepts_found[2:] if len(concepts_found) > 2 else [f"{topic} core principles"])
+            for c in gap_list
         ],
     )
 
@@ -227,28 +241,23 @@ async def _generate_flashcards(
     sources_used: list[str],
     raw_chunks: list[dict],
 ) -> LearnResponse:
-    prompt = f"""You are an expert AI tutor. Generate {count} flashcards for quick revision based on the provided knowledge base context.
-
-Topic: {topic}
-
-CONTEXT FROM KNOWLEDGE BASE:
-{context}
-
-REQUIREMENTS:
-1. Return ONLY a valid JSON object matching this schema:
-{{
-  "flashcards": [
-    {{
-      "concept": "Concept Title",
-      "front": "Question / Prompt on card front",
-      "back": "Clear concise answer and summary on card back",
-      "source_document": "Source file name"
-    }}
-  ]
-}}
-
-Generate exactly {count} flashcards. Return pure JSON.
-"""
+    prompt = (
+        f"You are an expert AI tutor. Generate {count} flashcards for quick revision "
+        f"based on the provided knowledge base context.\n\nTopic: {topic}\n\n"
+        f"CONTEXT FROM KNOWLEDGE BASE:\n{context}\n\n"
+        "REQUIREMENTS:\n1. Return ONLY a valid JSON object matching this schema:\n"
+        "{\n"
+        '  "flashcards": [\n'
+        "    {\n"
+        '      "concept": "Concept Title",\n'
+        '      "front": "Prompt on card front",\n'
+        '      "back": "Answer on card back",\n'
+        '      "source_document": "Source file name"\n'
+        "    }\n"
+        "  ]\n"
+        "}\n\n"
+        f"Generate exactly {count} flashcards. Return pure JSON."
+    )
 
     response = await llm.ainvoke(prompt)
     content = str(response.content).strip()
@@ -297,33 +306,18 @@ async def _generate_explanation(
     sources_used: list[str],
     raw_chunks: list[dict],
 ) -> LearnResponse:
-    prompt = f"""You are an expert AI tutor. Write a structured, comprehensive lesson explaining '{topic}' based on the context provided.
-
-CONTEXT FROM KNOWLEDGE BASE:
-{context}
-
-REQUIREMENTS:
-Return ONLY a valid JSON object with this exact schema:
-{{
-  "topic": "{topic}",
-  "overview": "Clear 2-3 sentence overview of the topic.",
-  "sections": [
-    {{
-      "title": "Section Title (e.g., 1. What is it?)",
-      "content": "Detailed explanation using markdown..."
-    }}
-  ],
-  "key_takeaways": [
-    "Takeaway point 1",
-    "Takeaway point 2"
-  ],
-  "misconceptions": [
-    "Common misunderstanding 1 and why it is wrong"
-  ]
-}}
-
-Return pure JSON.
-"""
+    prompt = (
+        f"You are an expert AI tutor. Write a structured lesson explaining '{topic}' "
+        f"based on the context provided.\n\nCONTEXT FROM KNOWLEDGE BASE:\n{context}\n\n"
+        "REQUIREMENTS:\nReturn ONLY a valid JSON object matching this schema:\n"
+        "{\n"
+        f'  "topic": "{topic}",\n'
+        '  "overview": "Overview of the topic.",\n'
+        '  "sections": [{"title": "Section Title", "content": "Markdown content..."}],\n'
+        '  "key_takeaways": ["Takeaway 1"],\n'
+        '  "misconceptions": ["Misconception 1"]\n'
+        "}\n\nReturn pure JSON."
+    )
 
     response = await llm.ainvoke(prompt)
     content = str(response.content).strip()

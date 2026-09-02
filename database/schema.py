@@ -55,8 +55,10 @@ async def init_db(dim: int | None = None) -> None:
         await conn.execute(_CREATE_DOCUMENTS_TABLE.format(dim=dim))
         if dim <= 2000:
             await conn.execute(_CREATE_HNSW_INDEX)
-        else:
-            logger.info("Embedding dim (%d) > 2000; using exact vector search without HNSW index.", dim)
+            logger.info(
+                "Embedding dim (%d) > 2000; using exact vector search without HNSW index.",
+                dim,
+            )
         await conn.execute(_CREATE_METADATA_INDEX)
         logger.info("Database schema ready (embedding dim=%d).", dim)
     except (OSError, asyncpg.PostgresError) as exc:
