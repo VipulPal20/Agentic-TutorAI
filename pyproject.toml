@@ -1,0 +1,56 @@
+[project]
+name = "agentic-rag"
+version = "0.1.0"
+description = "Production-grade Agentic RAG backend (LangGraph + FastAPI + pgvector + Gemini)."
+requires-python = ">=3.11"
+
+# ---------------------------------------------------------------------------
+# Ruff: linting + import sorting (replaces flake8 + isort).
+# ---------------------------------------------------------------------------
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+# Treat the repo root as the source root so first-party imports
+# (core, api, agent, tools, database) are sorted correctly.
+src = ["."]
+
+[tool.ruff.lint]
+select = [
+    "E",     # pycodestyle errors
+    "F",     # pyflakes
+    "I",     # isort
+    "B",     # flake8-bugbear
+    "UP",    # pyupgrade
+    "ASYNC", # flake8-async
+    "C4",    # flake8-comprehensions
+    "SIM",   # flake8-simplify
+]
+# B008: FastAPI intentionally uses Depends()/Query() as argument defaults.
+ignore = ["B008"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["core", "api", "agent", "tools", "database"]
+
+[tool.ruff.lint.per-file-ignores]
+# Assertions are expected in tests.
+"tests/*" = ["S101"]
+
+# ---------------------------------------------------------------------------
+# Pytest: async-native test suite.
+# ---------------------------------------------------------------------------
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]
+# Make the repo root importable so `import core`, `import api`, ... resolve
+# without a src/ layout or a PYTHONPATH hack.
+pythonpath = ["."]
+addopts = "-q --disable-warnings"
+
+# ---------------------------------------------------------------------------
+# mypy: optional strictness for type checking (not enforced in CI by default).
+# ---------------------------------------------------------------------------
+[tool.mypy]
+python_version = "3.11"
+warn_unused_ignores = true
+ignore_missing_imports = true
+plugins = ["pydantic.mypy"]

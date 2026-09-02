@@ -1,0 +1,33 @@
+# ---------------------------------------------------------------------------
+# Runtime dependencies. Versions are pinned to compatible major/minor ranges
+# so the LangChain 0.3.x / LangGraph 0.2.x / langchain-google-genai 2.x stack
+# stays internally consistent.
+# ---------------------------------------------------------------------------
+
+# ---- Web / API ----
+fastapi>=0.111,<0.116
+uvicorn[standard]>=0.30,<0.40
+pydantic>=2.7,<3.0
+pydantic-settings>=2.3,<3.0
+python-multipart>=0.0.9,<1.0
+
+# ---- Database (async) ----
+asyncpg>=0.29,<0.31
+pgvector>=0.3.0,<0.4.0
+numpy>=1.26,<3.0
+
+# ---- LLM / Agent (Google Gemini) ----
+langchain-core>=0.3.0,<0.4.0
+langgraph>=0.2.28,<0.3.0
+langchain-google-genai>=2.0.0,<3.0.0
+langchain-groq
+langchain-nvidia-ai-endpoints
+langchain-text-splitters>=0.3.0,<0.4.0
+
+# ---- Document parsing ----
+pypdf>=4.0,<5.0
+python-docx>=1.1,<2.0
+
+# ---- Observability ----
+# Pinned to v2: this project uses `from langfuse.callback import CallbackHandler`.
+langfuse>=2.53.0,<3.0.0

@@ -1,0 +1,72 @@
+# Brings up pgvector-enabled PostgreSQL, the FastAPI app, and the React UI.
+# Values interpolate from your shell / .env (see .env.example). At minimum set
+# GOOGLE_API_KEY in .env so the agent and seeding can call Gemini.
+#
+# The host ports below are the *defaults*; anything set in .env wins. Run
+# `docker compose config | grep -A2 ports` to see the ports actually in effect,
+# or `docker compose ps` once it's up.
+#
+#   UI  -> http://localhost:${WEB_PORT:-3000}   (nginx, proxies the API on the same origin)
+#   API -> http://localhost:${API_PORT:-8000}   (direct, for /docs and curl)
+
+services:
+  db:
+    image: pgvector/pgvector:pg16
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      POSTGRES_DB: ${POSTGRES_DB:-ragdb}
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres} -d ${POSTGRES_DB:-ragdb}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+
+  api:
+    build: .
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      # --- Database (points at the compose service, not localhost) ---
+      POSTGRES_HOST: db
+      POSTGRES_PORT: 5432
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      POSTGRES_DB: ${POSTGRES_DB:-ragdb}
+      # --- Google Gemini, Groq, NVIDIA ---
+      GOOGLE_API_KEY: ${GOOGLE_API_KEY:-}
+      GROQ_API_KEY: ${GROQ_API_KEY:-}
+      NVIDIA_API_KEY: ${NVIDIA_API_KEY:-}
+      CHAT_MODEL: ${CHAT_MODEL:-openai/gpt-oss-120b}
+      EMBEDDING_MODEL: ${EMBEDDING_MODEL:-nvidia/nemotron-3-embed-1b}
+      EMBEDDING_DIM: ${EMBEDDING_DIM:-2048}
+      # --- Seed sample docs on first boot (only if the table is empty) ---
+      SEED_ON_STARTUP: ${SEED_ON_STARTUP:-true}
+      SEED_PATH: data/sample_docs
+      # --- Langfuse (observability) ---
+      LANGFUSE_ENABLED: ${LANGFUSE_ENABLED:-false}
+      LANGFUSE_PUBLIC_KEY: ${LANGFUSE_PUBLIC_KEY:-}
+      LANGFUSE_SECRET_KEY: ${LANGFUSE_SECRET_KEY:-}
+      LANGFUSE_HOST: ${LANGFUSE_HOST:-https://cloud.langfuse.com}
+    ports:
+      - "${API_PORT:-8000}:8000"
+    restart: unless-stopped
+
+  web:
+    # nginx serves the built React bundle and proxies /chat, /summarize and
+    # /health to the api service, so the browser sees a single origin.
+    build: ./frontend
+    depends_on:
+      - api
+    ports:
+      - "${WEB_PORT:-3000}:80"
+    restart: unless-stopped
+
+volumes:
+  pgdata:
