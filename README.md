@@ -1,4 +1,4 @@
-# Agentic RAG — NotebookLM-Style AI Learning & Research Workspace
+# Agentic- TutorAI  — AI Learning & Research Workspace
 
 A production-grade, tri-API **Agentic Retrieval-Augmented Generation (RAG)** platform and **AI Learning Workspace**.
 
